@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <link rel="manifest" href="killplanner.webmanifest" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Kill Planner" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" href="img/killplanner-180.png" />
+    <meta name="theme-color" content="#f7f7f5" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)" />
+    <title>Lucario Kill Planner</title>
+    <link rel="shortcut icon" href="./img/icon.png" type="image/png" />
+    <style>
+        :root {
+            --bg: #f7f7f5; --surface: #ffffff; --surface-2: #f0efec; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+            --border: rgba(11,11,11,0.12); --grid: #e1e0d9; --axis: #c3c2b7; --bad: #b42b2b;
+            --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #6250d6; --s7: #008300; --s8: #e34948;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #121211; --surface: #1a1a19; --surface-2: #262624; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+                --border: rgba(255,255,255,0.12); --grid: #2c2c2a; --axis: #383835; --bad: #ef6b6b;
+                --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #9085e9; --s7: #2fa32f; --s8: #e66767;
+            }
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+        main { max-width: 1180px; margin: 0 auto; padding: calc(20px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(48px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left)); }
+        h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; }
+        h2 { font-size: 16px; font-weight: 600; margin: 0 0 10px; }
+        .sub { color: var(--ink-2); margin: 0 0 18px; font-size: 14px; }
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px 20px; }
+        label { display: block; font-size: 13px; color: var(--ink-2); }
+        label b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+        select { width: 100%; margin-top: 4px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font: inherit; }
+        input[type=range] { width: 100%; margin-top: 6px; accent-color: var(--s1); }
+        .hint { font-size: 12px; color: var(--muted); margin-top: 3px; }
+        .stats { font-size: 12px; color: var(--muted); margin-top: 4px; font-variant-numeric: tabular-nums; }
+        table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 14px; }
+        th { text-align: left; font-weight: 600; font-size: 12px; color: var(--ink-2); padding: 6px 8px; border-bottom: 1px solid var(--border); }
+        td { padding: 7px 8px; border-bottom: 1px solid var(--border); }
+        td.num, th.num { text-align: right; }
+        .swatch { display: inline-block; vertical-align: middle; margin-right: 8px; }
+        .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(440px, 100%), 1fr)); gap: 16px; }
+        .chartbox { position: relative; height: 380px; }
+        .chartbox canvas { display: block; width: 100%; height: 100%; touch-action: pan-y; }
+        .legend { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 0 0 10px; }
+        .legend button { display: inline-flex; align-items: center; font: inherit; font-size: 12px; padding: 2px 8px; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--ink-2); cursor: pointer; }
+        .legend button:hover { border-color: var(--border); }
+        .legend button[aria-pressed="false"] { opacity: .35; }
+        .seg { display: inline-flex; gap: 4px; }
+        .seg button, .small { font: inherit; font-size: 13px; padding: 4px 12px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--ink-2); cursor: pointer; }
+        .seg button[aria-pressed="true"] { background: var(--surface-2); color: var(--ink); border-color: var(--axis); }
+        .bar { height: 4px; background: var(--surface-2); border-radius: 2px; overflow: hidden; margin-top: 8px; }
+        .bar div { height: 100%; width: 0; background: var(--s1); transition: width .2s; }
+        #status { font-size: 12px; color: var(--muted); margin-top: 6px; min-height: 18px; }
+        ul.notes { margin: 0; padding-left: 18px; color: var(--ink-2); font-size: 13px; }
+        ul.notes li { margin: 3px 0; }
+        .footer { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 12px; color: var(--muted); margin-top: 12px; }
+        @media (max-width: 520px) { .charts { grid-template-columns: 1fr; } .chartbox { height: 300px; } td, th { padding: 6px 4px; } }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Lucario kill planner</h1>
+    <p class="sub">When do Lucario's kill moves close the stock? Set Lucario's percent and the opponent's distance from the ledge they'll be launched toward. Kill percents come from this calculator's knockback and trajectory engine.</p>
+
+    <section class="card" aria-label="Inputs">
+        <div class="controls">
+            <label>Opponent
+                <select id="opp"></select>
+                <div class="stats" id="oppStats"></div>
+            </label>
+            <label>Stage
+                <select id="stage"></select>
+                <div class="stats" id="stageStats"></div>
+            </label>
+            <label>Stock difference (Lucario)
+                <select id="stock">
+                    <option value="-2">Lucario 2 stocks behind</option>
+                    <option value="-1">Lucario 1 stock behind</option>
+                    <option value="0">Even stocks</option>
+                    <option value="+1">Lucario 1 stock ahead</option>
+                    <option value="+2">Lucario 2 stocks ahead</option>
+                </select>
+                <div class="hint">Changes aura. 1v1 values.</div>
+            </label>
+            <label>Lucario's percent <b id="lOut">50%</b>
+                <input id="lucPct" type="range" min="0" max="200" step="1" value="50" />
+            </label>
+            <label>Opponent's distance from the ledge <b id="dOut">10</b>
+                <input id="dist" type="range" min="0" max="80" step="1" value="10" />
+                <div class="hint">0 = standing at the ledge, max = stage center. Launched toward this ledge.</div>
+            </label>
+        </div>
+        <div class="bar" aria-hidden="true"><div id="barFill"></div></div>
+        <div id="status" role="status" aria-live="polite">Starting…</div>
+    </section>
+
+    <section class="card" aria-label="Charts">
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:10px">
+            <span style="font-size:13px;color:var(--ink-2)">Opponent's DI</span>
+            <span class="seg"><button id="modeNo" aria-pressed="true">No DI</button><button id="modeBest" aria-pressed="false">Optimal DI</button></span>
+            <span class="hint" style="margin:0">Tap a move below to hide or show it. Hover or drag along a line for exact values.</span>
+        </div>
+        <div class="legend" id="legend"></div>
+        <div class="charts">
+            <div>
+                <h2 id="chartATitle">Kill % vs Lucario's percent</h2>
+                <div class="chartbox"><canvas id="chartA" role="img" aria-label="Opponent kill percent against Lucario's percent for each move at the current distance from the ledge. Exact values are in the table below."></canvas></div>
+            </div>
+            <div>
+                <h2 id="chartBTitle">Kill % vs distance from the ledge</h2>
+                <div class="chartbox"><canvas id="chartB" role="img" aria-label="Opponent kill percent against distance from the ledge for each move at the current Lucario percent. Exact values are in the table below."></canvas></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="card" aria-label="Kill percents at the current settings">
+        <h2>At the current Lucario percent and distance</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Move</th>
+                <th class="num">Kills at (no DI)</th>
+                <th class="num">Kills at (optimal DI)</th>
+                <th class="num">DI adds</th>
+            </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+        </table>
+        <div class="hint" style="margin-top:8px">The opponent's percent before the move.</div>
+    </section>
+
+    <section class="card" aria-label="Assumptions">
+        <h2>Assumptions</h2>
+        <ul class="notes">
+            <li>1v1, every move fully fresh (×1.05), launch rate 1.0, no items. Aura follows Lucario's percent and the stock difference; rage follows Lucario's percent.</li>
+            <li>Every character is a point. The opponent is launched toward the ledge they're near. Bair, dair, ftilt, dash attack, utilt and Extreme Speed hit them standing on the floor (not crouching). Uair and fair hit them in the air at Lucario's short hop (18.19), full hop (37.62) or double-jump (75.24) height.</li>
+            <li>Short-hop aerials deal ×0.85 damage. In this engine that only lowers the damage added to the opponent's percent, so short hop costs a couple of percent, not 15%.</li>
+            <li>Strongest hitbox of each move: bair 14% sweetspot, uair 11% (frame 10), dair landing hit after the 5% first hit, ftilt launcher after the 4% first hit, dash attack early 10% hitbox, fair 6%, utilt 6% hitbox, Extreme Speed 6% (ground and air versions are identical). The opponent's percent is measured before the move starts.</li>
+            <li>Optimal DI is the opponent's best survival DI: every 5° of stick angle, then 1° around the best.</li>
+            <li>How it's fast: a launch's flight depends only on its knockback, angle, the opponent's gravity and fall speed, and DI. So each opponent's flights are simulated once, the knockback needed to KO is read off them for every position, and the kill percent is solved from the knockback formula. Matches the full engine to within 0.04%.</li>
+            <li>Engine limits: KO is checked until hitstun ends, no character hurtbox or ECB, and moving or transforming stage parts use their default layout.</li>
+        </ul>
+        <div class="footer">
+            <span id="selfcheck"></span>
+            <span id="storage"></span>
+            <button class="small" id="clearStore">Clear saved tables</button>
+        </div>
+    </section>
+</main>
+
+<script src="js/formulas.js"></script>
+<script src="js/knockback.js"></script>
+<script src="js/killplanner-data.js"></script>
+<script src="js/killplanner-core.js"></script>
+<script src="js/killplanner-chart.js"></script>
+<script src="js/killplanner.js"></script>
+<script>
+    // Installed-app support: keep the files on the device (needs http(s); skipped when opened as a file)
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('killplanner-sw.js');
+</script>
+</body>
+</html>

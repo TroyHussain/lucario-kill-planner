@@ -1,0 +1,13 @@
+{
+  "name": "Lucario Kill Planner",
+  "short_name": "Kill Planner",
+  "start_url": "killplanner.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#121211",
+  "theme_color": "#121211",
+  "icons": [
+    { "src": "img/killplanner-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "img/killplanner-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
